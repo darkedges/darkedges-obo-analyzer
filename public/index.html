@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Token & Assertion Analyzer</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --surface2: #eef3fb;
+      --border: #d4dce8;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --green: #15803d;
+      --amber: #b45309;
+      --red: #dc2626;
+      --teal: #0f766e;
+      --purple: #7c3aed;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    body.dark-theme {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2330;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --amber: #d29922;
+      --red: #f85149;
+      --teal: #39d353;
+      --purple: #bc8cff;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #58a6ff22, #bc8cff22);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .input-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 10px 12px;
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 16px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #79baff;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    #report {
+      display: none;
+    }
+
+    .report-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .report-title {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .token-type-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-obo {
+      background: #bc8cff22;
+      color: var(--purple);
+      border: 1px solid #bc8cff55;
+    }
+
+    .badge-std {
+      background: #58a6ff22;
+      color: var(--accent);
+      border: 1px solid #58a6ff55;
+    }
+
+    .badge-saml2 {
+      background: #0f766e22;
+      color: var(--teal);
+      border: 1px solid #0f766e55;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-blue {
+      background: var(--accent);
+    }
+
+    .dot-green {
+      background: var(--green);
+    }
+
+    .dot-amber {
+      background: var(--amber);
+    }
+
+    .dot-purple {
+      background: var(--purple);
+    }
+
+    .dot-red {
+      background: var(--red);
+    }
+
+    .dot-teal {
+      background: var(--teal);
+    }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      flex: 1;
+    }
+
+    .section-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .field-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .field-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .field-table td {
+      padding: 9px 16px;
+      vertical-align: top;
+    }
+
+    .field-key {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      white-space: nowrap;
+      width: 1%;
+      padding-right: 8px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: var(--muted);
+      width: 30%;
+      padding-right: 8px;
+    }
+
+    .field-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .field-value.highlight {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .field-value.warn {
+      color: var(--amber);
+    }
+
+    .field-value.danger {
+      color: var(--red);
+    }
+
+    .field-value.purple {
+      color: var(--purple);
+    }
+
+    .obo-callout {
+      background: #bc8cff11;
+      border: 1px solid #bc8cff33;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .obo-callout-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .obo-chain {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+
+    .obo-node {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .obo-node-label {
+      color: var(--muted);
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .obo-node-value {
+      color: var(--text);
+      font-size: 11px;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .obo-arrow {
+      color: var(--purple);
+      font-size: 18px;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    .scopes-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 12px 16px;
+    }
+
+    .scope-pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .scope-pill.high {
+      border-color: #f8514955;
+      background: #f8514911;
+      color: var(--red);
+    }
+
+    .scope-pill.med {
+      border-color: #d2992255;
+      background: #d2992211;
+      color: var(--amber);
+    }
+
+    .timestamps {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .ts-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .ts-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+
+    .ts-value {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .ts-raw {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .ts-expired {
+      border-color: #f8514955;
+    }
+
+    .ts-expired .ts-label {
+      color: var(--red);
+    }
+
+    .ts-expired .ts-value {
+      color: var(--red);
+    }
+
+    .error-box {
+      background: #f8514911;
+      border: 1px solid #f8514955;
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--red);
+      font-family: var(--mono);
+      font-size: 12px;
+      display: none;
+    }
+
+    .tabs-section {
+      margin-top: 1rem;
+    }
+
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .json-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .json-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .json-block-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .json-code {
+      margin: 0;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text);
+      white-space: pre;
+    }
+
+    .json-key {
+      color: var(--accent);
+    }
+
+    .json-string {
+      color: var(--green);
+    }
+
+    .json-number {
+      color: var(--amber);
+    }
+
+    .json-boolean {
+      color: var(--purple);
+    }
+
+    .json-null {
+      color: var(--red);
+    }
+
+    .xml-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .xml-block-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .xml-code {
+      margin: 0;
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text);
+      white-space: pre;
+    }
+
+    .xml-tag { color: var(--accent); }
+    .xml-attr { color: var(--teal); }
+    .xml-attr-val { color: var(--green); }
+    .xml-comment { color: var(--muted); font-style: italic; }
+
+    .raw-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .raw-toggle {
+      width: 100%;
+      background: var(--surface2);
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 10px 16px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: color 0.15s;
+    }
+
+    .raw-toggle:hover {
+      color: var(--text);
+    }
+
+    .raw-content {
+      display: none;
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .raw-content.visible {
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      .timestamps {
+        grid-template-columns: 1fr;
+      }
+
+      .obo-chain {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .obo-arrow {
+        transform: rotate(90deg);
+      }
+
+      .logo-row {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo-row">
+        <div class="logo-group">
+          <div class="logo-icon">TAA</div>
+          <h1>Token &amp; Assertion Analyzer</h1>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark mode</button>
+      </div>
+      <p class="subtitle">Paste a JWT, raw JSON payload, SAML 1.1, or SAML 2.0 assertion, or use ?jwt=... / ?saml1.1=...
+        / ?saml2.0=... in the URL to auto-load and inspect claims</p>
+    </header>
+
+    <div class="input-section">
+      <label class="input-label" for="jwt-input">JWT, JSON, SAML 1.1, or SAML 2.0 assertion</label>
+      <textarea id="jwt-input"
+        placeholder="Paste your JWT (eyJ...), raw JSON payload, or SAML 1.1 / SAML 2.0 assertion here..."></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="analyze()">Analyze token</button>
+        <button class="btn-ghost" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div class="tabs-section">
+      <div class="tabs-nav">
+        <button id="tab-report" class="tab-btn active" type="button" onclick="switchTab('report')">Report</button>
+        <button id="tab-json" class="tab-btn" type="button" onclick="switchTab('json')">JSON</button>
+        <button id="tab-xml" class="tab-btn" type="button" onclick="switchTab('xml')" style="display:none">XML</button>
+      </div>
+
+      <div id="panel-report" class="tab-panel active">
+        <div id="report"></div>
+      </div>
+
+      <div id="panel-json" class="tab-panel">
+        <div class="json-grid">
+          <section class="json-block">
+            <div class="json-block-header">Header</div>
+            <pre class="json-code" id="json-header">{}</pre>
+          </section>
+
+          <section class="json-block">
+            <div class="json-block-header">Payload</div>
+            <pre class="json-code" id="json-payload">{}</pre>
+          </section>
+        </div>
+      </div>
+
+      <div id="panel-xml" class="tab-panel">
+        <div class="xml-block">
+          <div class="xml-block-header">Raw XML Assertion</div>
+          <pre class="xml-code" id="xml-content"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function decodeBase64UrlJson(part, label) {
+      const padded = part + '='.repeat((4 - part.length % 4) % 4);
+      const decoded = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+      try {
+        return JSON.parse(decoded);
+      } catch (e) {
+        throw new Error(`Invalid ${label} JSON`);
+      }
+    }
+
+    function decodeBase64ToUtf8(value) {
+      const normalized = value.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+      if (!normalized || /[^A-Za-z0-9+/=]/.test(normalized)) {
+        throw new Error('Input is not base64 encoded');
+      }
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function isoToUnix(value) {
+      if (!value) return null;
+      const time = Date.parse(value);
+      if (Number.isNaN(time)) return null;
+      return Math.floor(time / 1000);
+    }
+
+    function textFromNode(node) {
+      return node ? node.textContent.trim() : '';
+    }
+
+    function localName(node) {
+      return node.localName || node.baseName || node.nodeName.split(':').pop();
+    }
+
+    function childElements(node, name) {
+      return Array.from(node ? node.childNodes : []).filter(child => child.nodeType === 1 && localName(child) === name);
+    }
+
+    function firstChildElement(node, name) {
+      return childElements(node, name)[0] || null;
+    }
+
+    function parseXml(xml) {
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      const parserError = doc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error('Invalid XML input');
+      }
+      return doc;
+    }
+
+    function looksLikeXml(value) {
+      return value.startsWith('<') || value.startsWith('<?xml');
+    }
+
+    function looksLikeSaml11Xml(value) {
+      return looksLikeXml(value) && value.includes('urn:oasis:names:tc:SAML:1.0:assertion');
+    }
+
+    function looksLikeSaml20Xml(value) {
+      return looksLikeXml(value) && value.includes('urn:oasis:names:tc:SAML:2.0:assertion');
+    }
+
+    function normalizePotentialSaml(input) {
+      const trimmed = input.trim();
+      if (looksLikeXml(trimmed)) return trimmed;
+      try {
+        const decoded = decodeBase64ToUtf8(trimmed).trim();
+        if (looksLikeXml(decoded)) {
+          return decoded;
+        }
+      } catch (e) {
+        // Fall back to JWT/JSON parsing when base64 decode fails.
+      }
+      return trimmed;
+    }
+
+    function parseSaml11Assertion(input) {
+      const xml = normalizePotentialSaml(input);
+      if (!looksLikeSaml11Xml(xml)) {
+        throw new Error('Not a SAML 1.1 assertion');
+      }
+
+      const doc = parseXml(xml);
+      const assertion = doc.documentElement;
+      const namespaceUri = assertion.namespaceURI || '';
+      const majorVersion = assertion.getAttribute('MajorVersion');
+      const minorVersion = assertion.getAttribute('MinorVersion');
+
+      if (localName(assertion) !== 'Assertion' || namespaceUri !== 'urn:oasis:names:tc:SAML:1.0:assertion' || majorVersion !== '1' || minorVersion !== '1') {
+        throw new Error('Expected a SAML 1.1 assertion');
+      }
+
+      const conditions = firstChildElement(assertion, 'Conditions');
+      const audienceCondition = firstChildElement(conditions, 'AudienceRestrictionCondition');
+      const subjectStatement = firstChildElement(assertion, 'AttributeStatement') || firstChildElement(assertion, 'AuthenticationStatement');
+      const subject = firstChildElement(subjectStatement, 'Subject');
+      const subjectConfirmation = firstChildElement(subject, 'SubjectConfirmation');
+      const signature = Array.from(assertion.childNodes).find(node => node.nodeType === 1 && localName(node) === 'Signature');
+
+      const attributeValues = {};
+      childElements(assertion, 'AttributeStatement').forEach(statement => {
+        childElements(statement, 'Attribute').forEach(attribute => {
+          const name = attribute.getAttribute('AttributeName') || attribute.getAttribute('Name') || 'attribute';
+          const namespace = attribute.getAttribute('AttributeNamespace') || attribute.getAttribute('NameFormat') || '';
+          const values = childElements(attribute, 'AttributeValue').map(textFromNode).filter(Boolean);
+          attributeValues[name] = {
+            namespace,
+            values
+          };
+        });
+      });
+
+      const audienceValues = childElements(audienceCondition, 'Audience').map(textFromNode).filter(Boolean);
+      const confirmationMethods = childElements(subjectConfirmation, 'ConfirmationMethod').map(textFromNode).filter(Boolean);
+      const certificateNode = signature ? Array.from(signature.getElementsByTagName('*')).find(node => localName(node) === 'X509Certificate') : null;
+      const nameIdentifier = textFromNode(firstChildElement(subject, 'NameIdentifier'));
+      const issuer = assertion.getAttribute('Issuer') || textFromNode(firstChildElement(assertion, 'Issuer'));
+
+      const payload = {
+        assertion_id: assertion.getAttribute('AssertionID') || '',
+        issuer,
+        issue_instant: assertion.getAttribute('IssueInstant') || '',
+        subject_nameid: nameIdentifier,
+        audience: audienceValues,
+        confirmation_methods: confirmationMethods,
+        not_before: conditions ? conditions.getAttribute('NotBefore') || '' : '',
+        not_on_or_after: conditions ? conditions.getAttribute('NotOnOrAfter') || '' : '',
+        attributes: Object.fromEntries(Object.entries(attributeValues).map(([name, meta]) => [name, meta.values.length > 1 ? meta.values : (meta.values[0] || '')]))
+      };
+
+      const details = {
+        xml,
+        audiences: audienceValues,
+        confirmationMethods,
+        attributes: attributeValues,
+        signature: {
+          present: !!signature,
+          certificatePresent: !!certificateNode,
+          certificatePreview: certificateNode ? `${textFromNode(certificateNode).slice(0, 24)}...` : ''
+        },
+        version: `${majorVersion}.${minorVersion}`
+      };
+
+      return {
+        header: {
+          typ: 'SAML 1.1',
+          format: 'XML Assertion',
+          issuer: issuer || 'unknown',
+          signed: !!signature,
+          version: details.version
+        },
+        payload: {
+          ...payload,
+          nbf: isoToUnix(payload.not_before),
+          exp: isoToUnix(payload.not_on_or_after)
+        },
+        details,
+        kind: 'saml11'
+      };
+    }
+
+    function parseSaml20Assertion(input) {
+      const xml = normalizePotentialSaml(input);
+      if (!looksLikeSaml20Xml(xml)) {
+        throw new Error('Not a SAML 2.0 assertion');
+      }
+
+      const doc = parseXml(xml);
+      const assertion = doc.documentElement;
+      const namespaceUri = assertion.namespaceURI || '';
+      const version = assertion.getAttribute('Version');
+
+      if (localName(assertion) !== 'Assertion' || namespaceUri !== 'urn:oasis:names:tc:SAML:2.0:assertion' || version !== '2.0') {
+        throw new Error('Expected a SAML 2.0 assertion');
+      }
+
+      const conditions = firstChildElement(assertion, 'Conditions');
+      const audienceRestriction = firstChildElement(conditions, 'AudienceRestriction');
+      const subject = firstChildElement(assertion, 'Subject');
+      const subjectConfirmation = firstChildElement(subject, 'SubjectConfirmation');
+      const authnStatement = firstChildElement(assertion, 'AuthnStatement');
+      const authnContext = authnStatement ? firstChildElement(authnStatement, 'AuthnContext') : null;
+      const signature = Array.from(assertion.childNodes).find(node => node.nodeType === 1 && localName(node) === 'Signature');
+
+      // SAML 2.0: Issuer is a child element, not an attribute
+      const issuerEl = firstChildElement(assertion, 'Issuer');
+      const issuer = textFromNode(issuerEl) || assertion.getAttribute('Issuer') || '';
+
+      // SAML 2.0: NameID instead of NameIdentifier
+      const nameId = firstChildElement(subject, 'NameID');
+      const nameIdentifier = textFromNode(nameId);
+      const nameIdFormat = nameId ? nameId.getAttribute('Format') || '' : '';
+
+      // SAML 2.0: SubjectConfirmation Method is an attribute, not a child element
+      const confirmationMethod = subjectConfirmation ? subjectConfirmation.getAttribute('Method') || '' : '';
+
+      // SAML 2.0: AudienceRestriction (not AudienceRestrictionCondition)
+      const audienceValues = childElements(audienceRestriction, 'Audience').map(textFromNode).filter(Boolean);
+
+      // Authentication context
+      const authnContextClassRef = authnContext ? textFromNode(firstChildElement(authnContext, 'AuthnContextClassRef')) : '';
+      const authnInstant = authnStatement ? authnStatement.getAttribute('AuthnInstant') || '' : '';
+
+      const attributeValues = {};
+      childElements(assertion, 'AttributeStatement').forEach(statement => {
+        childElements(statement, 'Attribute').forEach(attribute => {
+          const name = attribute.getAttribute('Name') || attribute.getAttribute('AttributeName') || 'attribute';
+          const namespace = attribute.getAttribute('NameFormat') || attribute.getAttribute('AttributeNamespace') || '';
+          const values = childElements(attribute, 'AttributeValue').map(textFromNode).filter(Boolean);
+          attributeValues[name] = { namespace, values };
+        });
+      });
+
+      const certificateNode = signature ? Array.from(signature.getElementsByTagName('*')).find(node => localName(node) === 'X509Certificate') : null;
+
+      const payload = {
+        assertion_id: assertion.getAttribute('ID') || assertion.getAttribute('AssertionID') || '',
+        issuer,
+        issue_instant: assertion.getAttribute('IssueInstant') || '',
+        subject_nameid: nameIdentifier,
+        subject_nameid_format: nameIdFormat,
+        audience: audienceValues,
+        confirmation_method: confirmationMethod,
+        not_before: conditions ? conditions.getAttribute('NotBefore') || '' : '',
+        not_on_or_after: conditions ? conditions.getAttribute('NotOnOrAfter') || '' : '',
+        authn_instant: authnInstant,
+        authn_context_class_ref: authnContextClassRef,
+        attributes: Object.fromEntries(Object.entries(attributeValues).map(([name, meta]) => [name, meta.values.length > 1 ? meta.values : (meta.values[0] || '')]))
+      };
+
+      const details = {
+        xml,
+        audiences: audienceValues,
+        confirmationMethod,
+        attributes: attributeValues,
+        signature: {
+          present: !!signature,
+          certificatePresent: !!certificateNode,
+          certificatePreview: certificateNode ? `${textFromNode(certificateNode).slice(0, 24)}...` : ''
+        },
+        version
+      };
+
+      return {
+        header: {
+          typ: 'SAML 2.0',
+          format: 'XML Assertion',
+          issuer: issuer || 'unknown',
+          signed: !!signature,
+          version
+        },
+        payload: {
+          ...payload,
+          nbf: isoToUnix(payload.not_before),
+          exp: isoToUnix(payload.not_on_or_after)
+        },
+        details,
+        kind: 'saml20'
+      };
+    }
+
+    function parseInput(input) {
+      const trimmed = input.trim();
+      const normalized = normalizePotentialSaml(trimmed);
+
+      if (trimmed.startsWith('{')) {
+        return {
+          header: { alg: 'none', typ: 'JSON' },
+          payload: JSON.parse(trimmed),
+          kind: 'json'
+        };
+      }
+
+      if (looksLikeSaml20Xml(normalized)) {
+        return parseSaml20Assertion(normalized);
+      }
+
+      if (looksLikeSaml11Xml(normalized)) {
+        return parseSaml11Assertion(normalized);
+      }
+
+      const parts = trimmed.split('.');
+      if (parts.length < 2) throw new Error('Not a valid JWT, JSON, or SAML assertion');
+      return {
+        header: decodeBase64UrlJson(parts[0], 'JWT header'),
+        payload: decodeBase64UrlJson(parts[1], 'JWT payload'),
+        kind: 'jwt'
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmtTime(unix) {
+      if (!unix) return null;
+      return new Date(unix * 1000).toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZoneName: 'short'
+      });
+    }
+
+    function isExpired(exp) {
+      return exp && (Date.now() / 1000) > exp;
+    }
+
+    function highPrivScopes() {
+      return ['IdentityProvider.ReadWrite.All', 'RoleManagement.ReadWrite.Directory', 'Directory.ReadWrite.All', 'Mail.ReadWrite', 'Files.ReadWrite.All', 'User.ReadWrite.All', 'Application.ReadWrite.All'];
+    }
+    function medPrivScopes() {
+      return ['Application.Read.All', 'User.Read.All', 'GroupMember.ReadWrite.All', 'Mail.Read', 'Calendars.ReadWrite'];
+    }
+
+    function scopeClass(s) {
+      if (highPrivScopes().some(h => s.includes(h))) return 'high';
+      if (medPrivScopes().some(m => s.includes(m))) return 'med';
+      return '';
+    }
+
+    function row(key, label, value, cls) {
+      if (value === undefined || value === null || value === '') return '';
+      const valClass = cls ? `field-value ${cls}` : 'field-value';
+      const safeKey = escapeHtml(key);
+      const safeLabel = escapeHtml(label);
+      const safeValue = escapeHtml(value);
+      return `<tr>
+    <td class="field-key">${safeKey}</td>
+    <td class="field-label">${safeLabel}</td>
+    <td class="${valClass}">${safeValue}</td>
+  </tr>`;
+    }
+
+    function jsonHighlight(value) {
+      const json = JSON.stringify(value ?? {}, null, 2)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      return json.replace(/("(\\u[0-9a-fA-F]{4}|\\[^u]|[^\\"])*"\s*:?)|(\btrue\b|\bfalse\b)|(\bnull\b)|(-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        if (/^".*":$/.test(match)) {
+          return `<span class="json-key">${match}</span>`;
+        }
+        if (/^"/.test(match)) {
+          return `<span class="json-string">${match}</span>`;
+        }
+        if (/true|false/.test(match)) {
+          return `<span class="json-boolean">${match}</span>`;
+        }
+        if (/null/.test(match)) {
+          return `<span class="json-null">${match}</span>`;
+        }
+        return `<span class="json-number">${match}</span>`;
+      });
+    }
+
+    function renderJsonTab(header, payload) {
+      document.getElementById('json-header').innerHTML = jsonHighlight(header || {});
+      document.getElementById('json-payload').innerHTML = jsonHighlight(payload || {});
+    }
+
+    function prettyPrintXml(xml) {
+      try {
+        const doc = parseXml(xml);
+
+        function serializeNode(node, depth) {
+          const pad = '  '.repeat(depth);
+          if (node.nodeType === 3) {          // text node
+            const t = node.textContent.trim();
+            return t ? pad + t : '';
+          }
+          if (node.nodeType === 8) {          // comment
+            return `${pad}<!--${node.textContent}-->`;
+          }
+          if (node.nodeType !== 1) return '';  // skip other node types
+
+          let attrs = '';
+          for (const attr of node.attributes) {
+            attrs += ` ${attr.name}="${attr.value}"`;
+          }
+
+          const tag = node.tagName;
+          const meaningful = Array.from(node.childNodes).filter(n =>
+            n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
+          );
+
+          if (meaningful.length === 0) {
+            return `${pad}<${tag}${attrs}/>`;
+          }
+          if (meaningful.length === 1 && meaningful[0].nodeType === 3) {
+            // Single text child — keep inline
+            return `${pad}<${tag}${attrs}>${meaningful[0].textContent.trim()}</${tag}>`;
+          }
+
+          const inner = meaningful.map(c => serializeNode(c, depth + 1)).filter(Boolean).join('\n');
+          return `${pad}<${tag}${attrs}>\n${inner}\n${pad}</${tag}>`;
+        }
+
+        return serializeNode(doc.documentElement, 0);
+      } catch (e) {
+        return xml;
+      }
+    }
+
+    function xmlHighlight(xml) {
+      const pretty = prettyPrintXml(xml);
+      return pretty.split(/(<(?:[^<>"']|"[^"]*"|'[^']*')*>)/).map(part => {
+        if (!part.startsWith('<')) {
+          return part.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        const esc = part
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '\u0001')
+          .replace(/>/g, '\u0002')
+          .replace(/"/g, '&quot;');
+        const h = esc
+          .replace(/^([\u0001][/?]?|[\u0001]!)([-\w:.]+)/, (_, br, name) => `${br}<span class="xml-tag">${name}</span>`)
+          .replace(/([-\w:.]+)=(&quot;)(.*?)(&quot;)/g, (_, n, q1, v, q2) =>
+            `<span class="xml-attr">${n}</span>=${q1}<span class="xml-attr-val">${v}</span>${q2}`);
+        return h.replace(/\u0001/g, '&lt;').replace(/\u0002/g, '&gt;');
+      }).join('');
+    }
+
+    function renderXmlTab(xml) {
+      document.getElementById('xml-content').innerHTML = xmlHighlight(xml);
+    }
+
+    function reportSection(dotClass, title, tag, rowsHtml) {
+      return `<div class="section">
+    <div class="section-header">
+      <div class="section-dot ${dotClass}"></div>
+      <span class="section-title">${escapeHtml(title)}</span>
+      ${tag ? `<span class="section-tag">${escapeHtml(tag)}</span>` : ''}
+    </div>
+    <table class="field-table">${rowsHtml}</table>
+  </div>`;
+    }
+
+    function renderSamlReport(parsed) {
+      const claims = parsed.payload;
+      const details = parsed.details || {};
+      const attributes = details.attributes || {};
+      const isSaml20 = parsed.kind === 'saml20';
+      const badgeClass = isSaml20 ? 'badge-saml2' : 'badge-std';
+      const badgeLabel = parsed.header.typ + ' Assertion';
+      const attributeRows = Object.entries(attributes).map(([name, meta]) => {
+        const value = meta.values.join(', ');
+        const label = meta.namespace ? `Attribute (${meta.namespace})` : 'Attribute';
+        return row(name, label, value);
+      }).join('');
+      const validityTag = claims.exp && isExpired(claims.exp) ? 'expired' : 'assertion window';
+      const confirmationDisplay = details.confirmationMethod || (details.confirmationMethods || []).join(', ');
+      const nameIdLabel = isSaml20 ? 'Name ID' : 'Name identifier';
+      const nameIdFormatSuffix = claims.subject_nameid_format ? ` (${claims.subject_nameid_format.split(':').pop()})` : '';
+
+      // Resolve well-known attributes across SAML 1.1 and 2.0 claim namespaces
+      const attrs = claims.attributes || {};
+      const wellKnownUpn = attrs.UPN || attrs['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn'] || attrs.upn;
+      const wellKnownEmail = attrs.emailaddress || attrs['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || attrs['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || attrs.email;
+      const wellKnownImmutableId = attrs.ImmutableID || attrs['http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID'];
+
+      let html = `<div class="report-header">
+    <span class="report-title">// assertion report</span>
+    <span class="token-type-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
+  </div>`;
+
+      html += reportSection('dot-green', 'Subject', 'who the assertion represents', [
+        row('subject_nameid', nameIdLabel + nameIdFormatSuffix, claims.subject_nameid, 'highlight'),
+        row('confirmation_method', 'Confirmation method', confirmationDisplay),
+        row('UPN', 'UPN', wellKnownUpn),
+        row('emailaddress', 'Email address', wellKnownEmail),
+        row('ImmutableID', 'Immutable ID', wellKnownImmutableId)
+      ].join(''));
+
+      html += reportSection('dot-blue', 'Issuer & audience', 'where the assertion came from', [
+        row('issuer', 'Issuer', claims.issuer),
+        row('assertion_id', 'Assertion ID', claims.assertion_id),
+        row('issue_instant', 'Issue instant', claims.issue_instant),
+        row('audience', 'Audience', (details.audiences || []).join(', '))
+      ].join(''));
+
+      html += reportSection('dot-amber', 'Validity window', validityTag, [
+        row('not_before', 'Not before', claims.not_before),
+        row('not_on_or_after', 'Not on or after', claims.not_on_or_after, claims.exp && isExpired(claims.exp) ? 'danger' : ''),
+        row('version', 'Assertion version', details.version)
+      ].join(''));
+
+      if (isSaml20 && (claims.authn_instant || claims.authn_context_class_ref)) {
+        html += reportSection('dot-blue', 'Authentication context', 'how the user authenticated', [
+          row('authn_instant', 'Authentication instant', claims.authn_instant),
+          row('authn_context', 'Context class ref', claims.authn_context_class_ref)
+        ].join(''));
+      }
+
+      html += reportSection('dot-purple', 'Attributes', `${Object.keys(attributes).length} attribute${Object.keys(attributes).length !== 1 ? 's' : ''}`, attributeRows || row('attributes', 'Attributes', 'No attributes found'));
+
+      html += reportSection('dot-teal', 'Signature summary', 'decode only; no validation', [
+        row('signature.present', 'Signature element present', details.signature && details.signature.present ? 'yes' : 'no', details.signature && details.signature.present ? 'highlight' : 'warn'),
+        row('signature.certificate', 'Embedded certificate present', details.signature && details.signature.certificatePresent ? 'yes' : 'no'),
+        row('signature.preview', 'Certificate preview', details.signature && details.signature.certificatePreview)
+      ].join(''));
+
+      const safeRawJson = escapeHtml(JSON.stringify({ header: parsed.header, payload: parsed.payload, details: parsed.details }, null, 2));
+      html += `<div class="raw-section">
+    <button class="raw-toggle" onclick="toggleRaw(this)">
+      <span>// raw decoded assertion</span><span id="raw-chevron">&#9660;</span>
+    </button>
+    <div class="raw-content" id="raw-content">${safeRawJson}</div>
+  </div>`;
+
+      return html;
+    }
+
+    function renderJwtReport(parsed) {
+      const claims = parsed.payload;
+      const isOBO = !!(claims.xms_st && claims.xms_st.sub);
+      const expExpired = isExpired(claims.exp);
+
+      let html = '';
+
+      // Report header
+      html += `<div class="report-header">
+    <span class="report-title">// token report</span>
+    <span class="token-type-badge ${isOBO ? 'badge-obo' : 'badge-std'}">${isOBO ? 'OBO (On-Behalf-Of)' : 'Standard Token'}</span>
+  </div>`;
+
+      // OBO chain callout
+      if (isOBO) {
+        const origSub = claims.xms_st?.sub || '—';
+        const thisSub = claims.sub || '—';
+        const appName = claims.app_displayname || claims.appid || '—';
+        const safeOrigSub = escapeHtml(origSub);
+        const safeThisSub = escapeHtml(thisSub);
+        const safeAppName = escapeHtml(appName);
+        const safeOid = escapeHtml(claims.oid || '—');
+        html += `<div class="obo-callout">
+      <div class="obo-callout-title">&#9670; On-Behalf-Of delegation chain</div>
+      <div class="obo-chain">
+        <div class="obo-node">
+          <div class="obo-node-label">original subject sub</div>
+          <div class="obo-node-value" title="${safeOrigSub}">${safeOrigSub}</div>
+        </div>
+        <div class="obo-arrow">&#8594;</div>
+        <div class="obo-node">
+          <div class="obo-node-label">actor / app</div>
+          <div class="obo-node-value" title="${safeAppName}">${safeAppName}</div>
+        </div>
+        <div class="obo-arrow">&#8594;</div>
+        <div class="obo-node">
+          <div class="obo-node-label">this token sub</div>
+          <div class="obo-node-value" title="${safeThisSub}">${safeThisSub}</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;font-family:var(--mono)">xms_st.sub differs from sub because sub is audience-scoped; both map to the same oid (${safeOid})</p>
+    </div>`;
+      }
+
+      // Subject / User
+      html += `<div class="section">
+    <div class="section-header">
+      <div class="section-dot dot-green"></div>
+      <span class="section-title">Subject — the human user</span>
+      <span class="section-tag">who the token represents</span>
+    </div>
+    <table class="field-table">
+      ${row('upn', 'User Principal Name', claims.upn || claims.unique_name, 'highlight')}
+      ${row('name', 'Display name', claims.name)}
+      ${row('given_name', 'Given name', claims.given_name)}
+      ${row('family_name', 'Family name', claims.family_name)}
+      ${row('oid', 'Object ID (Entra)', claims.oid)}
+      ${row('sub', 'Subject (audience-scoped)', claims.sub)}
+      ${row('puid', 'Microsoft PUID', claims.puid)}
+      ${row('onprem_sid', 'On-prem AD SID', claims.onprem_sid)}
+      ${row('acct', 'Account type', claims.acct === 0 ? '0 — work/school account' : claims.acct === 1 ? '1 — personal account' : claims.acct)}
+      ${row('idtyp', 'Identity type', claims.idtyp)}
+    </table>
+  </div>`;
+
+      // Actor / Application
+      html += `<div class="section">
+    <div class="section-header">
+      <div class="section-dot dot-purple"></div>
+      <span class="section-title">Actor — the application</span>
+      <span class="section-tag">what performed the token request</span>
+    </div>
+    <table class="field-table">
+      ${row('app_displayname', 'App display name', claims.app_displayname, 'highlight purple')}
+      ${row('appid', 'Application (client) ID', claims.appid)}
+      ${row('appidacr', 'App auth method', claims.appidacr === '1' ? '1 — client secret' : claims.appidacr === '2' ? '2 — certificate' : claims.appidacr)}
+    </table>
+  </div>`;
+
+      // OBO-specific sub chain
+      if (isOBO) {
+        html += `<div class="section">
+      <div class="section-header">
+        <div class="section-dot dot-teal"></div>
+        <span class="section-title">OBO identity chain</span>
+        <span class="section-tag">delegation-specific claims</span>
+      </div>
+      <table class="field-table">
+        ${row('xms_st.sub', 'Upstream token subject', claims.xms_st?.sub, 'purple')}
+        ${row('sub', 'This token subject', claims.sub)}
+        ${row('oid', 'Resolved object ID', claims.oid, 'highlight')}
+      </table>
+    </div>`;
+      }
+
+      // Issuer / Tenant
+      html += `<div class="section">
+    <div class="section-header">
+      <div class="section-dot dot-blue"></div>
+      <span class="section-title">Issuer &amp; tenant</span>
+      <span class="section-tag">where the token came from</span>
+    </div>
+    <table class="field-table">
+      ${row('iss', 'Issuer', claims.iss)}
+      ${row('tid', 'Tenant ID', claims.tid)}
+      ${row('aud', 'Audience', claims.aud)}
+      ${row('tenant_region_scope', 'Tenant region', claims.tenant_region_scope)}
+      ${row('ver', 'Token version', claims.ver)}
+    </table>
+  </div>`;
+
+      // Scopes
+      if (claims.scp) {
+        const scopes = claims.scp.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean);
+        const pills = scopes.map(s => `<span class="scope-pill ${scopeClass(s)}">${escapeHtml(s)}</span>`).join('');
+        html += `<div class="section">
+      <div class="section-header">
+        <div class="section-dot dot-amber"></div>
+        <span class="section-title">Delegated permissions (scp)</span>
+        <span class="section-tag">${scopes.length} scope${scopes.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="scopes-list">${pills}</div>
+    </div>`;
+      }
+
+      // Timestamps
+      if (claims.iat || claims.nbf || claims.exp) {
+        const expClass = expExpired ? 'ts-card ts-expired' : 'ts-card';
+        html += `<div class="section">
+      <div class="section-header">
+        <div class="section-dot ${expExpired ? 'dot-red' : 'dot-blue'}"></div>
+        <span class="section-title">Token lifetime</span>
+        <span class="section-tag">${expExpired ? '&#9888; EXPIRED' : 'valid'}</span>
+      </div>
+      <div class="timestamps">
+        ${claims.iat ? `<div class="ts-card"><div class="ts-label">Issued at</div><div class="ts-value">${fmtTime(claims.iat)}</div><div class="ts-raw">${claims.iat}</div></div>` : ''}
+        ${claims.nbf ? `<div class="ts-card"><div class="ts-label">Not before</div><div class="ts-value">${fmtTime(claims.nbf)}</div><div class="ts-raw">${claims.nbf}</div></div>` : ''}
+        ${claims.exp ? `<div class="${expClass}"><div class="ts-label">Expires${expExpired ? ' (expired)' : ''}</div><div class="ts-value">${fmtTime(claims.exp)}</div><div class="ts-raw">${claims.exp}</div></div>` : ''}
+      </div>
+    </div>`;
+      }
+
+      // Network / session
+      if (claims.ipaddr || claims.sid || claims.platf) {
+        html += `<div class="section">
+      <div class="section-header">
+        <div class="section-dot dot-blue"></div>
+        <span class="section-title">Session &amp; network</span>
+      </div>
+      <table class="field-table">
+        ${row('ipaddr', 'IP address', claims.ipaddr)}
+        ${row('sid', 'Session ID', claims.sid)}
+        ${row('platf', 'Platform', claims.platf)}
+        ${row('acr', 'Auth context class', claims.acr === '1' ? '1 — password auth' : claims.acr)}
+      </table>
+    </div>`;
+      }
+
+      // Raw JSON toggle
+      const safeRawJson = escapeHtml(JSON.stringify(claims, null, 2));
+      html += `<div class="raw-section">
+    <button class="raw-toggle" onclick="toggleRaw(this)">
+      <span>// raw claims</span><span id="raw-chevron">&#9660;</span>
+    </button>
+    <div class="raw-content" id="raw-content">${safeRawJson}</div>
+  </div>`;
+
+      return html;
+    }
+
+    function switchTab(tabName) {
+      ['report', 'json', 'xml'].forEach(name => {
+        const btn = document.getElementById('tab-' + name);
+        const panel = document.getElementById('panel-' + name);
+        if (btn) btn.classList.toggle('active', name === tabName);
+        if (panel) panel.classList.toggle('active', name === tabName);
+      });
+    }
+
+    function analyze() {
+      const input = document.getElementById('jwt-input').value;
+      const errBox = document.getElementById('error-box');
+      const report = document.getElementById('report');
+
+      errBox.style.display = 'none';
+      report.style.display = 'none';
+      report.innerHTML = '';
+
+      if (!input.trim()) {
+        showError('Please paste a JWT, JSON payload, or SAML 1.1 / SAML 2.0 assertion above.');
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = parseInput(input);
+      } catch (e) {
+        showError('Could not parse input: ' + e.message);
+        return;
+      }
+
+      const isSaml = parsed.kind === 'saml11' || parsed.kind === 'saml20';
+      document.getElementById('tab-xml').style.display = isSaml ? '' : 'none';
+      document.getElementById('tab-json').style.display = isSaml ? 'none' : '';
+      if (isSaml) {
+        renderXmlTab(parsed.details.xml);
+      } else {
+        renderJsonTab(parsed.header, parsed.payload);
+      }
+      switchTab('report');
+      report.innerHTML = isSaml ? renderSamlReport(parsed) : renderJwtReport(parsed);
+      report.style.display = 'block';
+    }
+
+    function toggleRaw(btn) {
+      const content = document.getElementById('raw-content');
+      const chevron = document.getElementById('raw-chevron');
+      content.classList.toggle('visible');
+      chevron.innerHTML = content.classList.contains('visible') ? '&#9650;' : '&#9660;';
+    }
+
+    function showError(msg) {
+      const errBox = document.getElementById('error-box');
+      errBox.textContent = msg;
+      errBox.style.display = 'block';
+    }
+
+    function clearAll() {
+      document.getElementById('jwt-input').value = '';
+      document.getElementById('error-box').style.display = 'none';
+      document.getElementById('report').style.display = 'none';
+      document.getElementById('report').innerHTML = '';
+      document.getElementById('json-header').innerHTML = jsonHighlight({});
+      document.getElementById('json-payload').innerHTML = jsonHighlight({});
+      document.getElementById('xml-content').innerHTML = '';
+      document.getElementById('tab-xml').style.display = 'none';
+      document.getElementById('tab-json').style.display = '';
+      switchTab('report');
+    }
+
+    function getJwtFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('jwt') || params.get('token') || params.get('saml1.1') || params.get('saml2.0') || '';
+    }
+
+    function initFromQuery() {
+      const jwtFromQuery = getJwtFromQuery();
+      if (!jwtFromQuery) return;
+
+      document.getElementById('jwt-input').value = jwtFromQuery;
+      analyze();
+    }
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      document.body.classList.toggle('dark-theme', isDark);
+
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle) {
+        toggle.textContent = isDark ? 'Light mode' : 'Dark mode';
+        toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const theme = savedTheme === 'dark' ? 'dark' : 'light';
+      applyTheme(theme);
+
+      const toggle = document.getElementById('theme-toggle');
+      toggle.addEventListener('click', function () {
+        const nextTheme = document.body.classList.contains('dark-theme') ? 'light' : 'dark';
+        localStorage.setItem('theme', nextTheme);
+        applyTheme(nextTheme);
+      });
+    }
+
+    document.getElementById('jwt-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) analyze();
+    });
+
+    initTheme();
+    renderJsonTab({}, {});
+    initFromQuery();
+  </script>
+</body>
+
+</html>

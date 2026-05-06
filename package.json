@@ -1,0 +1,14 @@
+{
+    "name": "darkedges-obo-analyzer",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "sync": "node -e \"require('fs').copyFileSync('jwt-analyzer.html','public/index.html');console.log('Synced jwt-analyzer.html -> public/index.html');\"",
+        "dev": "npm run sync && wrangler pages dev public",
+        "deploy": "npm run sync && wrangler pages deploy public --project-name darkedges-obo-analyzer",
+        "deploy:pages": "npm run sync && wrangler pages deploy public --project-name darkedges-obo-analyzer"
+    },
+    "devDependencies": {
+        "wrangler": "^4.15.2"
+    }
+}
